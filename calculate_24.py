@@ -1,112 +1,96 @@
-import tkinter as tk
-from tkinter import messagebox
+import sys
 
-# 计算函数
-def can_form_24(nums, path=""):
-    if len(nums) == 1:
-        # 基本情况：如果只有一个数字，检查是否等于24，并输出路径
-        if abs(nums[0] - 24) < 1e-6:
-            # 将数字转换为整数输出
-            path = path.replace(" * ", "*").replace(" / ", "/").replace(" + ", "+").replace(" - ", "-")
-            return f"Solution: {path} = 24"
-        return None
-
-    # 遍历所有数字的两两组合
-    for i in range(len(nums)):
-        for j in range(len(nums)):
-            if i != j:
-                # 选择两个数字，计算它们的结果
-                new_nums = [nums[k] for k in range(len(nums)) if k != i and k != j]
-                a, b = nums[i], nums[j]
+def solve_24(numbers, expressions):
+    if len(numbers) == 1:
+        if abs(numbers[0] - 24) < 1e-6:
+            return expressions[0]
+        else:
+            return None
+    
+    n = len(numbers)
+    for i in range(n):
+        for j in range(n):
+            if i == j:
+                continue
+            a = numbers[i]
+            b = numbers[j]
+            expr_a = expressions[i]
+            expr_b = expressions[j]
+            
+            # 创建新的数字列表和表达式列表，排除i和j
+            new_numbers = []
+            new_expressions = []
+            for k in range(n):
+                if k != i and k != j:
+                    new_numbers.append(numbers[k])
+                    new_expressions.append(expressions[k])
+            
+            # 尝试所有运算符
+            for op in ['+', '-', '*', '/']:
+                if op == '/' and b == 0:
+                    continue  # 避免除零错误
                 
-                # 尝试所有运算符
-                for op in ['+', '-', '*', '/']:
-                    if op == '+':
-                        result = a + b
-                        new_path = f"({a} {op} {b})"
-                    elif op == '-':
-                        result = a - b
-                        new_path = f"({a} {op} {b})"
-                    elif op == '*':
-                        result = a * b
-                        new_path = f"({a} {op} {b})"
-                    elif op == '/':
-                        if b != 0:
-                            result = a / b
-                            new_path = f"({a} {op} {b})"
-                        else:
-                            continue
-                    
-                    # 递归调用，继续计算
-                    result_path = can_form_24(new_nums + [result], path + (" " if path == "" else " ") + new_path)
-                    if result_path:
-                        return result_path
+                # 计算结果
+                if op == '+':
+                    result = a + b
+                elif op == '-':
+                    result = a - b
+                elif op == '*':
+                    result = a * b
+                else:  # '/'
+                    if b == 0:
+                        continue
+                    result = a / b
+                
+                # 格式化表达式
+                new_expr = f"({expr_a}{op}{expr_b})"
+                
+                # 递归调用
+                solution = solve_24(new_numbers + [result], new_expressions + [new_expr])
+                if solution is not None:
+                    return solution
+    
     return None
 
-# 验证输入是否为数字
-def validate_input(*args):
-    if all(arg.get() != "" for arg in args):  # 确保所有输入框都有值
-        for entry in args:
-            try:
-                float(entry.get())  # 尝试将输入转化为数字
-            except ValueError:
-                entry.set('')  # 如果转换失败，清空输入框
-                messagebox.showwarning("Invalid Input", "Please enter valid numbers.")
+def main():
+    if len(sys.argv) > 1:
+        # 从命令行参数获取数字
+        try:
+            nums = list(map(float, sys.argv[1:5]))
+            if len(nums) !=4:
+                print("请输入四个数字")
                 return
-
-# GUI 回调函数
-def on_calculate():
-    try:
-        # 获取用户输入的四个数字
-        nums = [float(entry_1.get()), float(entry_2.get()), float(entry_3.get()), float(entry_4.get())]
-        
-        # 调用计算函数
-        result = can_form_24(nums)
-        if result:
-            result_label.config(text=result)
+        except ValueError:
+            print("请输入有效的数字")
+            return
+    else:
+        # 交互式输入
+        while True:
+            input_str = input("请输入四个数字，用空格分隔：")
+            nums = input_str.split()
+            if len(nums) !=4:
+                print("请输入四个数字")
+                continue
+            try:
+                nums = list(map(float, nums))
+                break
+            except ValueError:
+                print("请输入有效的数字")
+    
+    # 格式化初始表达式
+    def format_num(n):
+        if n.is_integer():
+            return str(int(n))
         else:
-            result_label.config(text="No solution found")
-    except ValueError:
-        messagebox.showerror("Error", "Please enter valid numbers")
+            return str(n)
+    
+    initial_expressions = [format_num(num) for num in nums]
+    solution = solve_24(nums, initial_expressions)
+    
+    if solution:
+        print(f"可以解决：{solution}")
+    else:
+        print("无法解决")
 
-# 创建主窗口
-root = tk.Tk()
-root.title("24 Game Solver")
-
-# 创建并布局控件
-label = tk.Label(root, text="Enter four numbers:")
-label.pack(pady=10)
-
-entry_1 = tk.Entry(root, width=10)
-entry_1.pack(side=tk.LEFT, padx=5)
-entry_2 = tk.Entry(root, width=10)
-entry_2.pack(side=tk.LEFT, padx=5)
-entry_3 = tk.Entry(root, width=10)
-entry_3.pack(side=tk.LEFT, padx=5)
-entry_4 = tk.Entry(root, width=10)
-entry_4.pack(side=tk.LEFT, padx=5)
-
-# 验证输入
-entry_var_1 = tk.StringVar()
-entry_var_2 = tk.StringVar()
-entry_var_3 = tk.StringVar()
-entry_var_4 = tk.StringVar()
-
-entry_1.config(textvariable=entry_var_1)
-entry_2.config(textvariable=entry_var_2)
-entry_3.config(textvariable=entry_var_3)
-entry_4.config(textvariable=entry_var_4)
-
-entry_var_1.trace("w", lambda *args: validate_input(entry_var_1, entry_var_2, entry_var_3, entry_var_4))
-entry_var_2.trace("w", lambda *args: validate_input(entry_var_1, entry_var_2, entry_var_3, entry_var_4))
-entry_var_3.trace("w", lambda *args: validate_input(entry_var_1, entry_var_2, entry_var_3, entry_var_4))
-entry_var_4.trace("w", lambda *args: validate_input(entry_var_1, entry_var_2, entry_var_3, entry_var_4))
-
-calculate_button = tk.Button(root, text="Calculate", command=on_calculate)
-calculate_button.pack(pady=10)
-
-result_label = tk.Label(root, text="", font=("Helvetica", 12))
-result_label.pack(pady=20)
-
-# 运行主事件循环
-root.mainloop()
+if __name__ == "__main__":
+    main()
